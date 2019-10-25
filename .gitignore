@@ -1,0 +1,6 @@
+*.tfvars
+*.bkp.*
+*.rkestate
+*.cluster.yml
+.terraform
+*.tfstate*
