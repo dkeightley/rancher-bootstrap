@@ -63,14 +63,15 @@ importkey () {
       then
         echo "[Info] $_scope | Ooops, it looks like that public SSH key doesn't exist"
         echo "Shall I create a key for you?"
-        echo -n "     y/n:"
+        echo -n "     y/n: "
         read _reply
         if [[ ! ${_reply} =~ ^[Yy]$ ]]
           then
             echo -e "\n Ok, lets revist this later..."
             exit 1
           else
-            ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa
+            ssh-keygen -t rsa -b 2048 -f ~/.ssh/${name}
+            _pubsshkey="~/.ssh/${name}"
         fi
     fi
     case ${_provider} in
@@ -168,16 +169,16 @@ buildclusteryml () {
 }
 
 waitfornodes () {
-    sleep 10 # initial grace period while nodes launch
     _node_ips=`grep ' address:' ${_clusteryaml} | awk '{print $3}'`
     for _ip in ${_node_ips}
       do 
         echo -n "Waiting on $_ip: "
-        until ping -c1 $_ip >/dev/null 2>&1
+        while ping -c1 $_ip >/dev/null 2>&1
           do
             sleep 2
             echo -n "."
           done
+        echo
       done
 }
 
@@ -194,6 +195,22 @@ rkeup () {
 checknodes () {
     export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml"
     kubectl get nodes -o wide
+}
+
+rkeremove () {
+    echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
+    _clusteryaml="${_configdir}/${_name}-ha.cluster.yml"
+    _rkestate="${_configdir}/${_name}-ha.cluster.rkestate"
+    _kubeconfig="${_configdir}/kube_config_${_name}-ha.cluster.yml"
+    cp ${_clusteryaml} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.yml
+    cp ${_rkestate} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.rkestate
+    cp ${_kubeconfig} ${_configdir}/.bkp.`date "+%F-%T"`.kube_config_${_name}.cluster.yml
+    rke remove --ssh-agent-auth --config ${_clusteryaml} 
+    if [ $? -ne 0 ]
+      then
+        echo "[Error] $_scope | Something went wrong with 'rke remove'"
+        exit 1
+    fi
 }
 
 terraformdestroy () {
@@ -227,16 +244,6 @@ deletekey () {
         exit 1
         ;;
     esac    
-}
-
-rkeremove () {
-    echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
-    rke remove --ssh-agent-auth --config ./${_clusteryaml}
-    if [ $? -ne 0 ]
-      then
-        echo "[Error] $_scope | Something went wrong with 'rke remove'"
-        exit 1
-    fi
 }
 
 case "$1" in
@@ -342,7 +349,25 @@ if [ -n "${_create}" ]
 fi
 if [ -n "${_delete}" ]
   then
-    terraformdestroy
-    rkeremove
-    deletekey
+    if [ -z "${_imfeelinglucky}" ]
+      then
+        for _function in rkeremove terraformdestroy deletekey
+          do
+            echo "[Info] $_scope | We're ready to start the ${_function} function, are we good to go?"
+            echo -n "    y/n: "
+            read _reply
+            if [[ ! ${_reply} =~ ^[Yy]$ ]]
+              then
+                echo -e "\nOk, lets revist this later..."
+                exit 1
+              else
+                echo -e "\n[Info] $_scope | Starting ${_function} now"
+                ${_function}
+            fi
+          done
+      else
+        rkeremove
+        terraformdestroy
+        deletekey
+    fi
 fi

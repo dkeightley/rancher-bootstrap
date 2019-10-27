@@ -17,6 +17,7 @@ resource "aws_lb_target_group" "nlb-443-tg" {
   protocol             = "TCP"
   vpc_id               = "${var.vpc}"
   target_type          = "instance"
+  deregistration_delay = 10
 
   health_check {
     healthy_threshold  = 3
@@ -31,6 +32,7 @@ resource "aws_lb_target_group" "nlb-80-tg" {
   protocol             = "TCP"
   vpc_id               = "${var.vpc}"
   target_type          = "instance"
+  deregistration_delay = 10
 
   health_check {
     healthy_threshold  = 3

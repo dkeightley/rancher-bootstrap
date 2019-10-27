@@ -67,14 +67,15 @@ importkey () {
       then
         echo "[Info] $_scope | Ooops, it looks like that public SSH key doesn't exist"
         echo "Shall I create a key for you?"
-        echo -n "     y/n:"
+        echo -n "     y/n: "
         read _reply
         if [[ ! ${_reply} =~ ^[Yy]$ ]]
           then
             echo -e "\n Ok, lets revist this later..."
             exit 1
           else
-            ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa
+            ssh-keygen -t rsa -b 2048 -f ~/.ssh/${name}
+            _pubsshkey="~/.ssh/${name}"
         fi
     fi
     case ${_provider} in
@@ -136,7 +137,6 @@ terraformapply () {
 }
 
 buildclusteryml () {
-    _configdir=config
     if [ ! -f ${_configdir}/.example.cluster.yml ]
       then
         echo "[Error] $_scope | Appears my .example.rancher-cluster.yml file is missing, i'll need that, a little help please..."
@@ -148,7 +148,7 @@ buildclusteryml () {
         cp ${_configdir}/.example.cluster.yml ${_clusteryaml}
       else
         echo "[Info] $_scope | Looks like a cluster.yml exists, taking a backup"
-        mv ${_clusteryaml} ${_configdir}/.bkp.${_name}.`date "+%F-%T"`
+        mv ${_clusteryaml} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.yml
         cp ${_configdir}/.example.cluster.yml ${_clusteryaml}
     fi
     if [ ${_provider} = "aws" ]
@@ -173,22 +173,22 @@ buildclusteryml () {
 }
 
 waitfornodes () {
-    sleep 10 # initial grace period while nodes launch
     _node_ips=`grep ' address:' ${_clusteryaml} | awk '{print $3}'`
     for _ip in ${_node_ips}
       do 
         echo -n "Waiting on $_ip: "
-        until ping -c1 $_ip >/dev/null 2>&1
+        while ping -c1 $_ip >/dev/null 2>&1
           do
             sleep 2
             echo -n "."
           done
+        echo
       done
 }
 
 rkeup () {
     echo "[Info] $_scope | Running RKE to build the rancher server cluster"
-    rke up --ssh-agent-auth --config ./${_clusteryaml}
+    rke up --ssh-agent-auth --config ${_clusteryaml}
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with 'rke up'"
@@ -236,6 +236,22 @@ installrancher () {
     kubectl -n cattle-system rollout status deploy/rancher
 }
 
+rkeremove () {
+    echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
+    _clusteryaml="${_configdir}/${_name}-ha.cluster.yml"
+    _rkestate="${_configdir}/${_name}-ha.cluster.rkestate"
+    _kubeconfig="${_configdir}/kube_config_${_name}-ha.cluster.yml"
+    cp ${_clusteryaml} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.yml
+    cp ${_rkestate} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.rkestate
+    cp ${_kubeconfig} ${_configdir}/.bkp.`date "+%F-%T"`.kube_config_${_name}.cluster.yml
+    rke remove --ssh-agent-auth --config ${_clusteryaml} 
+    if [ $? -ne 0 ]
+      then
+        echo "[Error] $_scope | Something went wrong with 'rke remove'"
+        exit 1
+    fi
+}
+
 terraformdestroy () {
     if [ -z ${_imfeelinglucky} ]
       then
@@ -267,16 +283,6 @@ deletekey () {
         exit 1
         ;;
     esac    
-}
-
-rkeremove () {
-    echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
-    rke remove --ssh-agent-auth --config ./${_clusteryaml}
-    if [ $? -ne 0 ]
-      then
-        echo "[Error] $_scope | Something went wrong with 'rke remove'"
-        exit 1
-    fi
 }
 
 case "$1" in
@@ -348,6 +354,7 @@ _pubsshkey=${_opt_pubsshkey:-~/.ssh/id_rsa.pub}
 _provider=${_opt_provider:-aws}
 _nodes=${_opt_nodes:-3}
 _ranchertag=${_opt_ranchertag:-stable}
+_configdir=config
 _scope=HA
 
 if ! [[ -n "${_create}" || -n "${_delete}" ]]
@@ -372,7 +379,7 @@ if [ -n "${_create}" ]
     testcredentials
     testprereqs
     adminip
-    #importkey
+    importkey
     if [ -z "${_nodes}" ]
       then
         _nodes=3 # default
@@ -388,6 +395,7 @@ if [ -n "${_create}" ]
         for _function in terraformapply buildclusteryml rkeup checknodes
           do
             echo "[Info] $_scope | We're ready to start the ${_function} function, are we good to go?"
+            echo -n "    y/n: "
             read _reply
             if [[ ! ${_reply} =~ ^[Yy]$ ]]
               then
@@ -416,12 +424,30 @@ if [ -n "${_create}" ]
         fi
     fi
   echo; echo "Use the following command to interact with the new cluster:"
-  echo 'export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml"'
+  echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml""
   echo
 fi
 if [ -n "${_delete}" ]
   then
-    terraformdestroy
-    rkeremove
-    deletekey
+    if [ -z "${_imfeelinglucky}" ]
+      then
+        for _function in rkeremove terraformdestroy deletekey
+          do
+            echo "[Info] $_scope | We're ready to start the ${_function} function, are we good to go?"
+            echo -n "    y/n: "
+            read _reply
+            if [[ ! ${_reply} =~ ^[Yy]$ ]]
+              then
+                echo -e "\nOk, lets revist this later..."
+                exit 1
+              else
+                echo -e "\n[Info] $_scope | Starting ${_function} now"
+                ${_function}
+            fi
+          done
+      else
+        rkeremove
+        terraformdestroy
+        deletekey
+    fi
 fi
