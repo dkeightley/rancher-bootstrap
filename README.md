@@ -8,7 +8,7 @@ Uses Terraform and bash to automate the creation of:
  - Auto Scaling Groups for instances
  - An NLB for the Rancher Server
 
-Currently only AWS is supported.
+**Currently only AWS is supported.**
 
 ### Requirements
 
@@ -66,8 +66,8 @@ bootstrap-ha.sh [create | delete] <args>
       Create everything, but prompt during the functions:
         bootstrap-ha.sh create -n rancher-lab -r us-east-1 -i ~/.ssh/id_rsa.pub -d r.domain.com
 
-      Just create/update terraform, useful for updating admin security group
-        bootstrap-ha.sh create -n rancher-lab -d r.domain.com -o
+      Just create/update terraform, useful if your admin IP has changed
+        bootstrap-ha.sh create -n rancher-lab -o
 ```
 
 ### `bootstrap-rke.sh`
@@ -91,6 +91,6 @@ bootstrap-rke.sh [create | delete] <args>
       Create everything, but prompt during the functions:
         bootstrap-rke.sh create -n rancher-rke -r us-east-1 -i ~/.ssh/id_rsa.pub
 
-      Just update terraform - useful if your admin IP has changed
-        bootstrap-rke.sh -n rancher-rke -o
+      Just create/update terraform, useful if your admin IP has changed
+        bootstrap-rke.sh create -n rancher-rke -o
 ```
