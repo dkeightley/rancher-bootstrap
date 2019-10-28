@@ -45,6 +45,11 @@ resource "aws_launch_configuration" "launchconfig" {
         key                 = "Name"
         value               = "${var.name}-asg"
         propagate_at_launch = true
+      },
+      {
+        key                 = "kubernetes.io/cluster/${var.name}"
+        value               = "owned"
+        propagate_at_launch = true
       }
   ]
 }

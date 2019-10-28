@@ -1,12 +1,23 @@
 ## rancher-bootstrap
 
-An automated approach to launching HA Rancher Servers and instances with Docker installed. 
+An automated approach to launching the resources and instances for HA Rancher Servers. 
 
 Uses Terraform and bash to automate the creation of:
 
- - AWS VPC and Security Groups
+ - VPC and Security Groups
  - Auto Scaling Groups for instances
  - An NLB for the Rancher Server
+
+Currently only AWS is supported.
+
+### Requirements
+
+ - AWS CLI and credentials
+ - terraform
+ - rke
+ - curl
+ - jq
+ - ssh-agent running, with your SSH key added
 
 ### `bootstrap-vpc.sh`
 

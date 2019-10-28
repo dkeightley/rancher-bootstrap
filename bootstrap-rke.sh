@@ -149,7 +149,7 @@ buildclusteryml () {
     fi
     if [ ${_provider} = "aws" ]
       then
-        aws ec2 describe-instances --filters "Name=tag:Name,Values=${_name}-ha-asg" "Name=instance-state-name,Values=running" --region ${_region} | jq -r '.Reservations[].Instances[] | .PublicIpAddress + " " + .PrivateIpAddress' > ${_configdir}/.tmp.nodes.txt
+        aws ec2 describe-instances --filters "Name=tag:Name,Values=${_name}-rke-asg" "Name=instance-state-name,Values=running" --region ${_region} | jq -r '.Reservations[].Instances[] | .PublicIpAddress + " " + .PrivateIpAddress' > ${_configdir}/.tmp.nodes.txt
         _running=`cat ${_configdir}/.tmp.nodes.txt | wc -l`
         if [ ${_running} -eq ${_nodes} ]
         then
@@ -193,15 +193,15 @@ rkeup () {
 }
 
 checknodes () {
-    export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml"
+    export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-rke.cluster.yml"
     kubectl get nodes -o wide
 }
 
 rkeremove () {
     echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
-    _clusteryaml="${_configdir}/${_name}-ha.cluster.yml"
-    _rkestate="${_configdir}/${_name}-ha.cluster.rkestate"
-    _kubeconfig="${_configdir}/kube_config_${_name}-ha.cluster.yml"
+    _clusteryaml="${_configdir}/${_name}-rke.cluster.yml"
+    _rkestate="${_configdir}/${_name}-rke.cluster.rkestate"
+    _kubeconfig="${_configdir}/kube_config_${_name}-rke.cluster.yml"
     cp ${_clusteryaml} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.yml
     cp ${_rkestate} ${_configdir}/.bkp.`date "+%F-%T"`.${_name}.cluster.rkestate
     cp ${_kubeconfig} ${_configdir}/.bkp.`date "+%F-%T"`.kube_config_${_name}.cluster.yml
@@ -298,6 +298,8 @@ _name=${_opt_name:-rancher-lab}
 _pubsshkey=${_opt_pubsshkey:-~/.ssh/id_rsa.pub}
 _provider=${_opt_provider:-aws}
 _nodes=${_opt_nodes:-3}
+_configdir=config
+_scope=RKE
 
 if ! [[ -n "${_create}" || -n "${_delete}" ]]
   then
@@ -366,8 +368,14 @@ if [ -n "${_delete}" ]
             fi
           done
       else
-        rkeremove
-        terraformdestroy
-        deletekey
+        if [ -n "${_terraformonly}" ]
+          then
+            terraformdestroy
+            exit 0
+          else
+            rkeremove
+            terraformdestroy
+            deletekey
+        fi
     fi
 fi

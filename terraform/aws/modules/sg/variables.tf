@@ -7,7 +7,7 @@ variable "name" {
 }
 
 variable "admin-ip" {
-    description = "Environment name"
+    description = "Public IP in CIDR form of Admin accessing the cluster"
 }
 
 variable "vpc-cidr" {

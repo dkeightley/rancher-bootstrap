@@ -23,7 +23,7 @@ resource "aws_security_group" "admin-sg" {
 
 resource "aws_security_group" "cluster-sg" {
     name_prefix = "${var.name}-"
-    description = "${var.name} - Rancher Cluster SG - Allow incoming HTTP and all nodes to communicate"
+    description = "${var.name} - Rancher Server SG - Allow incoming HTTP and all nodes to communicate"
     vpc_id = "${var.vpc}"
 
     ingress {  # Allow 80 via an NLB
@@ -53,17 +53,9 @@ resource "aws_security_group" "cluster-sg" {
 
     tags = {
         Name = "${var.name}-cluster-sg"
+        "kubernetes.io/cluster/${var.name}" = "owned"
     }
 }
-
-# resource "aws_security_group_rule" "cluster-communication" {
-#     type                     = "ingress"
-#     from_port                = 0
-#     to_port                  = 0
-#     protocol                 = "-1"
-#     self                     = true
-#     security_group_id        = "${aws_security_group.cluster-sg.id}"
-# }
 
 output "cluster-sg" {
     value = "${aws_security_group.cluster-sg.id}"

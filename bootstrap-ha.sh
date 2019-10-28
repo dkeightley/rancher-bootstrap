@@ -74,8 +74,9 @@ importkey () {
             echo -e "\n Ok, lets revist this later..."
             exit 1
           else
-            ssh-keygen -t rsa -b 2048 -f ~/.ssh/${name}
-            _pubsshkey="~/.ssh/${name}"
+            ssh-keygen -t rsa -b 2048 -f ~/.ssh/${_name}
+            _pubsshkey="~/.ssh/${_name}"
+            ssh-add ~/.ssh/${_name}
         fi
     fi
     case ${_provider} in
@@ -234,6 +235,7 @@ installrancher () {
       --set letsEncrypt.email=user@${_serverdomain} \
       --set rancherImageTag=${_ranchertag}
     kubectl -n cattle-system rollout status deploy/rancher
+    helm ls
 }
 
 rkeremove () {
@@ -423,8 +425,10 @@ if [ -n "${_create}" ]
             installrancher
         fi
     fi
-  echo; echo "Use the following command to interact with the new cluster:"
+  echo; echo "--- Use the following command to interact with the new cluster:"
   echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml""
+  echo
+  terraform output -state=./terraform.ha.tfstate
   echo
 fi
 if [ -n "${_delete}" ]
