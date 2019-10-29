@@ -9,7 +9,7 @@ usage () {
         -d   domain for rancher/server (uses letsencrypt certificate)       default: none
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
         -c   optional | number of nodes to launch                           default: 3 
-        -a   optional | i'm feeling lucky (yes to everything)
+        -a   optional | i'm feeling lucky (yes to everything)               default: prompt me
         -k   optional | RKE cluster only, don't install rancher/server
         -o   optional | terraform only
         -s   optional | rancher server only
@@ -102,7 +102,7 @@ importkey () {
 }
 
 terraformvars () {
-    ## Collect VPC details from HA terraform state
+    ## Collect VPC details from VPC terraform state
     _publicsubnet="$(terraform output --state=./terraform.vpc.tfstate public-subnet)"
     _vpc="$(terraform output --state=./terraform.vpc.tfstate vpc)"
     if [[ -n ${_name} && -n ${_region} ]]

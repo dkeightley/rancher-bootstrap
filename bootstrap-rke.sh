@@ -8,8 +8,7 @@ usage () {
         -r   region to run the resources                                    default: us-east-1
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
         -c   number of nodes to launch                                      default: 3 
-        -a   i'm feeling lucky (yes to everything)
-        -k   create RKE cluster only, don't install rancher/server
+        -a   i'm feeling lucky (yes to everything)                          default: prompt me
         -o   run terraform only
         
     example:
@@ -97,7 +96,7 @@ importkey () {
 }
 
 terraformvars () {
-    ## Collect VPC details from HA terraform state
+    ## Collect VPC details from VPC terraform state
     _publicsubnet="$(terraform output --state=./terraform.vpc.tfstate public-subnet)"
     _vpc="$(terraform output --state=./terraform.vpc.tfstate vpc)"
     if [[ -n ${_name} && -n ${_region} ]]

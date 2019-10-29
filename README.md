@@ -54,7 +54,7 @@ bootstrap-ha.sh [create | delete] <args>
         -d   domain for rancher/server (uses letsencrypt certificate)       default: none
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
         -c   optional | number of nodes to launch                           default: 3
-        -a   optional | i'm feeling lucky (yes to everything)
+        -a   optional | i'm feeling lucky (yes to everything)               default: prompt me
         -k   optional | RKE cluster only, don't install rancher/server
         -o   optional | terraform only
         -s   optional | rancher server only
@@ -82,8 +82,7 @@ bootstrap-rke.sh [create | delete] <args>
         -r   region to run the resources                                    default: us-east-1
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
         -c   number of nodes to launch                                      default: 3
-        -a   i'm feeling lucky (yes to everything)
-        -k   create RKE cluster only, don't install rancher/server
+        -a   i'm feeling lucky (yes to everything)                          default: prompt me
         -o   run terraform only
 
     example:
