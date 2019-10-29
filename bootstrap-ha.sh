@@ -178,7 +178,7 @@ waitfornodes () {
     for _ip in ${_node_ips}
       do 
         echo -n "Waiting on $_ip: "
-        while ping -c1 $_ip >/dev/null 2>&1
+        while ! ping -c1 $_ip >/dev/null 2>&1
           do
             sleep 2
             echo -n "."
@@ -252,6 +252,7 @@ rkeremove () {
         echo "[Error] $_scope | Something went wrong with 'rke remove'"
         exit 1
     fi
+    rm ${_clusteryaml}
 }
 
 terraformdestroy () {
