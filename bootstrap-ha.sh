@@ -129,7 +129,7 @@ terraformapply () {
             exit 1
         fi
     fi
-    terraform apply -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
+    terraform apply -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with applying terraform"
@@ -267,7 +267,7 @@ terraformdestroy () {
             exit 1
         fi
     fi
-    terraform destroy -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
+    terraform destroy -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with terraform"

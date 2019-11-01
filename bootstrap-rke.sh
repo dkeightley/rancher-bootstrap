@@ -122,7 +122,7 @@ terraformapply () {
             exit 1
         fi
     fi
-    terraform apply -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
+    terraform apply -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with applying terraform"
@@ -225,7 +225,7 @@ terraformdestroy () {
             exit 1
         fi
     fi
-    terraform destroy -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
+    terraform destroy -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with terraform"
@@ -351,6 +351,11 @@ if [ -n "${_create}" ]
 fi
 if [ -n "${_delete}" ]
   then
+    if [ -n "${_terraformonly}" ]
+      then
+        terraformdestroy
+        exit 0
+    fi
     if [ -z "${_imfeelinglucky}" ]
       then
         for _function in rkeremove terraformdestroy deletekey
@@ -368,14 +373,8 @@ if [ -n "${_delete}" ]
             fi
           done
       else
-        if [ -n "${_terraformonly}" ]
-          then
-            terraformdestroy
-            exit 0
-          else
-            rkeremove
-            terraformdestroy
-            deletekey
-        fi
+        rkeremove
+        terraformdestroy
+        deletekey
     fi
 fi
