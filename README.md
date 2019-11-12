@@ -1,6 +1,6 @@
 ## rancher-bootstrap
 
-An automated approach to launching the resources and instances for HA Rancher Servers. 
+An automated approach to launching the resources for Rancher servers and RKE clusters in HA or single node configurations. 
 
 Uses Terraform and bash to automate the creation of:
 
@@ -18,6 +18,47 @@ Uses Terraform and bash to automate the creation of:
  - curl
  - jq
  - ssh-agent running, with your SSH key added
+
+## Example
+
+- Create a VPC for use with the Rancher server and/or downstream clusters, this VPC will automatically be used for further resources.
+
+```bash
+./bootstrap-vpc.sh create -a -n test-vpc
+```
+
+- Create a 3 node cluster and run an **HA** Rancher server.
+
+```bash
+./bootstrap-ha.sh create -a -n ha-rancher -d <domain name for SSL certificate>
+```
+*Note: provide an SSH key in a custom location with `-i </path/to/key.pub>`*
+
+  - Add a CNAME or alias for your domain name to the NLB that is created.
+  - Access the Rancher server via the NLB.
+
+**Optional** 
+
+- Create a **single** instance to run a single node Rancher server.
+
+```bash
+./bootstrap-ha.sh create -a -n single-rancher -o -c 1
+```
+
+  - Login and run the Rancher container:
+
+```bash
+docker run -d --restart=unless-stopped \
+  -p 80:80 -p 443:443 \
+  -v /opt/rancher:/var/lib/rancher \
+  rancher/rancher:latest
+```
+
+  - Access the Rancher server via the Public IP of the node.
+
+---
+
+## Usage
 
 ### `bootstrap-vpc.sh`
 

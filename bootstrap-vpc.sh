@@ -121,7 +121,6 @@ while getopts "han:r:p:c:" opt
           _opt_name=${OPTARG}
           ;;
       r)
-          echo "setting region"
           _opt_region=${OPTARG}
           ;;
       p)
