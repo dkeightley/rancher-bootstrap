@@ -446,6 +446,11 @@ if [ -n "${_create}" ]
 fi
 if [ -n "${_delete}" ]
   then
+    if [ -n "${_terraformonly}" ]
+      then
+        terraformdestroy
+        exit 0
+    fi
     if [ -z "${_imfeelinglucky}" ]
       then
         for _function in rkeremove terraformdestroy deletekey
