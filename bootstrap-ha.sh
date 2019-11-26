@@ -7,6 +7,7 @@ usage () {
         -p   provider (aws only so far)                                     default: aws
         -r   region to run the resources                                    default: us-east-1
         -d   domain for rancher/server (uses letsencrypt certificate)       default: none
+        -e   email for letsencrypt certificate                              default: postmaster@<domain from -d>
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
         -c   optional | number of nodes to launch                           default: 3 
         -a   optional | i'm feeling lucky (yes to everything)               default: prompt me
@@ -59,7 +60,14 @@ testprereqs () {
 }
 
 adminip () {
-    _adminip="$(curl -s ifconfig.io)/32"
+    _pubip="$(curl -s ifconfig.io)"
+    if echo $_pubip | grep "." > /dev/null 2>&1
+      then
+        _adminip="$_pubip/32"
+    elif echo $_pubip | grep ":" > /dev/null 2>&1
+      then
+        _adminip="$_pubip/64"
+    fi
 }
 
 importkey () {
@@ -232,7 +240,7 @@ installrancher () {
       --namespace cattle-system \
       --set hostname=${_serverdomain} \
       --set ingress.tls.source=letsEncrypt \
-      --set letsEncrypt.email=user@${_serverdomain} \
+      --set letsEncrypt.email=${_email} \
       --set rancherImageTag=${_ranchertag}
     kubectl -n cattle-system rollout status deploy/rancher
     helm ls
@@ -299,7 +307,7 @@ case "$1" in
       ;;
 esac
 
-while getopts "khlsahot:n:i:r:p:d:c:" opt
+while getopts "khlsahot:n:i:r:p:d:c:e:" opt
   do
     case ${opt} in
       a)
@@ -335,6 +343,9 @@ while getopts "khlsahot:n:i:r:p:d:c:" opt
       d)
           _serverdomain=${OPTARG}
           ;;
+      e)
+          _opt_email=${OPTARG}
+          ;;
       l)
           _nlb=0
           ;;
@@ -357,6 +368,7 @@ _pubsshkey=${_opt_pubsshkey:-~/.ssh/id_rsa.pub}
 _provider=${_opt_provider:-aws}
 _nodes=${_opt_nodes:-3}
 _ranchertag=${_opt_ranchertag:-stable}
+_email=${_opt_email:-postmaster@$_serverdomain}
 _configdir=config
 _scope=HA
 
@@ -376,6 +388,7 @@ if [ -n "${_create}" ]
       then
         installtiller
         installcertmanager
+        sleep 2 # let the admission controller setup first
         installrancher
         exit 0
     fi
@@ -426,11 +439,10 @@ if [ -n "${_create}" ]
             installrancher
         fi
     fi
-  echo; echo "--- Use the following command to interact with the new cluster:"
-  echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml""
-  echo
-  terraform output -state=./terraform.ha.tfstate
-  echo
+  echo "--- Use the following command to interact with the new cluster:"
+  echo; echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml""
+  #terraform output -state=./terraform.ha.tfstate
+  #echo
 fi
 if [ -n "${_delete}" ]
   then

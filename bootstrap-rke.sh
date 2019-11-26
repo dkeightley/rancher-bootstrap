@@ -7,7 +7,8 @@ usage () {
         -p   provider (aws only so far)                                     default: aws
         -r   region to run the resources                                    default: us-east-1
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
-        -c   number of nodes to launch                                      default: 3 
+        -c   number of nodes to launch                                      default: 3
+        -t   instance type                                                  default: t3a.medium
         -a   i'm feeling lucky (yes to everything)                          default: prompt me
         -o   run terraform only
         
@@ -54,7 +55,14 @@ testprereqs () {
 }
 
 adminip () {
-    _adminip="$(curl -s ifconfig.io)/32"
+    _pubip="$(curl -s ifconfig.io)"
+    if echo $_pubip | grep "." > /dev/null 2>&1
+      then
+        _adminip="$_pubip/32"
+    elif echo $_pubip | grep ":" > /dev/null 2>&1
+      then
+        _adminip="$_pubip/64"
+    fi
 }
 
 importkey () {
@@ -108,6 +116,7 @@ cat <<- EOF > .${_name}.rke.terraform.tfvars
     key-name = "${_name}-keypair"
     nodes = ${_nodes}
     vpc = "${_vpc}"
+    instance-type = "${_instancetype}"
     public-subnet = ${_publicsubnet}
 EOF
     fi
@@ -216,7 +225,7 @@ rkeremove () {
 terraformdestroy () {
     if [ -z ${_imfeelinglucky} ]
       then
-        echo "Careful there, are you sure you want to destory everything?"
+        echo "Careful there, are you sure you want to destroy everything?"
         echo -n "    y/n: "
         read _reply
         if [[ ! ${_reply} =~ ^[Yy]$ ]]
@@ -257,7 +266,7 @@ case "$1" in
       ;;
 esac
 
-while getopts "hoan:i:r:p:c:" opt
+while getopts "hoan:i:r:p:c:t:" opt
   do
     case ${opt} in
       a)
@@ -277,6 +286,9 @@ while getopts "hoan:i:r:p:c:" opt
           ;;
       c)
           _opt_nodes=${OPTARG}
+          ;;
+      t)
+          _opt_instancetype=${OPTARG}
           ;;
       o)
           _terraformonly=1
@@ -298,6 +310,7 @@ _name=${_opt_name:-rancher-lab}
 _pubsshkey=${_opt_pubsshkey:-~/.ssh/id_rsa.pub}
 _provider=${_opt_provider:-aws}
 _nodes=${_opt_nodes:-3}
+_instancetype=${_opt_instancetype:-t3a.medium}
 _configdir=config
 _scope=RKE
 
@@ -348,6 +361,8 @@ if [ -n "${_create}" ]
         rkeup
         checknodes
     fi
+  echo "--- Use the following command to interact with the new cluster:"
+  echo; echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-rke.cluster.yml""
 fi
 if [ -n "${_delete}" ]
   then
