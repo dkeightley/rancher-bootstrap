@@ -54,7 +54,7 @@ testprereqs () {
 terraformvars () {
     if [[ -n ${_name} && -n ${_region} ]]
       then
-cat <<- EOF > .${_name}.vpc.terraform.tfvars
+cat <<- EOF > .${_region}.${_name}.vpc.terraform.tfvars
     name = "${_name}"
     region = "${_region}"
     vpc-cidr = "${_cidr}"
@@ -71,7 +71,7 @@ terraformapply () {
             exit 1
         fi
     fi
-    terraform apply -var-file=./.${_name}.vpc.terraform.tfvars -state=./terraform.vpc.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-vpc
+    terraform apply -var-file=./.${_region}.${_name}.vpc.terraform.tfvars -state=./terraform.vpc.${_region}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-vpc
     if [ $? -ne 0 ]
       then
         echo "[Error] ${_scope} | Something went wrong with applying terraform"
@@ -91,13 +91,14 @@ terraformdestroy () {
             exit 1
         fi
     fi
-    terraform destroy -var-file=./.${_name}.vpc.terraform.tfvars -state=./terraform.vpc.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-vpc
+    terraform destroy -var-file=./.${_region}.${_name}.vpc.terraform.tfvars -state=./terraform.vpc.${_region}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-vpc
     if [ $? -ne 0 ]
       then
         echo "[Error] ${_scope} | Something went wrong with terraform"
         exit 1
     fi
-    rm .${_name}.vpc.terraform.tfvars
+    rm .${_region}.${_name}.vpc.terraform.tfvars
+    rm terraform.vpc.${_region}.tfstate*
 }
 
 case "$1" in

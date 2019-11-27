@@ -105,11 +105,11 @@ importkey () {
 
 terraformvars () {
     ## Collect VPC details from VPC terraform state
-    _publicsubnet="$(terraform output --state=./terraform.vpc.tfstate public-subnet)"
-    _vpc="$(terraform output --state=./terraform.vpc.tfstate vpc)"
+    _publicsubnet="$(terraform output --state=./terraform.vpc.${_region}.tfstate public-subnet)"
+    _vpc="$(terraform output --state=./terraform.vpc.${_region}.tfstate vpc)"
     if [[ -n ${_name} && -n ${_region} ]]
       then
-cat <<- EOF > .${_name}.rke.terraform.tfvars
+cat <<- EOF > .${_region}.${_name}.rke.terraform.tfvars
     name = "${_name}"
     region = "${_region}"
     admin-ip = "${_adminip}"
@@ -131,7 +131,7 @@ terraformapply () {
             exit 1
         fi
     fi
-    terraform apply -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
+    terraform apply -var-file=./.${_region}.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with applying terraform"
@@ -234,13 +234,14 @@ terraformdestroy () {
             exit 1
         fi
     fi
-    terraform destroy -var-file=./.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
+    terraform destroy -var-file=./.${_region}.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with terraform"
         exit 1
     fi
-    rm .${_name}.rke.terraform.tfvars
+    rm .${_region}.${_name}.rke.terraform.tfvars
+    rm terraform.rke.${_region}.${_name}.tfstate*
 }
 
 deletekey () {

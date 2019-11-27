@@ -111,11 +111,11 @@ importkey () {
 
 terraformvars () {
     ## Collect VPC details from VPC terraform state
-    _publicsubnet="$(terraform output --state=./terraform.vpc.tfstate public-subnet)"
-    _vpc="$(terraform output --state=./terraform.vpc.tfstate vpc)"
+    _publicsubnet="$(terraform output --state=./terraform.vpc.${_region}.tfstate public-subnet)"
+    _vpc="$(terraform output --state=./terraform.vpc.${_region}.tfstate vpc)"
     if [[ -n ${_name} && -n ${_region} ]]
       then
-cat <<- EOF > .${_name}.ha.terraform.tfvars
+cat <<- EOF > .${_region}.${_name}.ha.terraform.tfvars
     name = "${_name}"
     region = "${_region}"
     admin-ip = "${_adminip}"
@@ -137,7 +137,7 @@ terraformapply () {
             exit 1
         fi
     fi
-    terraform apply -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
+    terraform apply -var-file=./.${_region}.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with applying terraform"
@@ -275,13 +275,14 @@ terraformdestroy () {
             exit 1
         fi
     fi
-    terraform destroy -var-file=./.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
+    terraform destroy -var-file=./.${_region}.${_name}.ha.terraform.tfvars -state=./terraform.ha.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-ha
     if [ $? -ne 0 ]
       then
         echo "[Error] $_scope | Something went wrong with terraform"
         exit 1
     fi
-    rm .${_name}.ha.terraform.tfvars
+    rm .${_region}.${_name}.ha.terraform.tfvars
+    rm terraform.ha.${_region}.${_name}.tfstate*
 }
 
 deletekey () {
@@ -293,7 +294,7 @@ deletekey () {
         echo "Sorry, on the to do list"
         exit 1
         ;;
-    esac    
+    esac
 }
 
 case "$1" in
@@ -388,7 +389,7 @@ if [ -n "${_create}" ]
       then
         installtiller
         installcertmanager
-        sleep 2 # let the admission controller setup first
+        sleep 5 # let the certmanager controller setup first
         installrancher
         exit 0
     fi
@@ -439,10 +440,9 @@ if [ -n "${_create}" ]
             installrancher
         fi
     fi
-  echo "--- Use the following command to interact with the new cluster:"
+  echo; terraform output -state=./terraform.ha.${_region}.${_name}.tfstate
+  echo; echo  "--- Use the following command to interact with the new cluster:"
   echo; echo "export KUBECONFIG="`pwd`/${_configdir}/kube_config_${_name}-ha.cluster.yml""
-  #terraform output -state=./terraform.ha.tfstate
-  #echo
 fi
 if [ -n "${_delete}" ]
   then
