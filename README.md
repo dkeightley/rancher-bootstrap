@@ -31,7 +31,8 @@ Uses Terraform and bash to automate the creation of:
 
 *Note: override the default region with `-r <region>`*
 
-  - This VPC will now be used for any further resources in that region.
+  - This VPC will now be used for any further resources in that region
+  - Create some further resources below...
 
 ## Create a 3 node cluster and run an HA Rancher server
 
@@ -49,9 +50,16 @@ Uses Terraform and bash to automate the creation of:
 ./bootstrap-ha.sh create -a -n test-rancher -d <domain name> -e <email for letsencrypt> -c 1 -l
 ```
 
+  - No NLB is created (`-l`)
   - Add an A record for your domain name to the IP Address of the node (needed for SSL).
 
-## Create a single node cluster and run Rancher as a container (testing environment)
+## Create a 3 node RKE cluster only
+
+```bash
+./bootstrap-rke.sh create -a -n rke-cluster 
+```
+
+## Create a single instance and run Rancher as a container (testing environment)
 
 ```bash
 ./bootstrap-rke.sh create -a -n single-rancher -o -c 1
