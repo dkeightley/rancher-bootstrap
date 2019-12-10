@@ -4,18 +4,19 @@ usage () {
     echo "bootstrap-ha.sh [create | delete] <args>
     args:
         -n   name to use for all resources and cluster                      default: rancher-lab
-        -p   provider (aws only so far)                                     default: aws
-        -r   region to run the resources                                    default: us-east-1
         -d   domain for rancher/server (uses letsencrypt certificate)       default: none
         -e   email for letsencrypt certificate                              default: postmaster@<domain from -d>
         -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
+        -p   optional | provider (aws only so far)                          default: aws
+        -r   optional | region to run the resources                         default: us-east-1
         -c   optional | number of nodes to launch                           default: 3 
         -a   optional | i'm feeling lucky (yes to everything)               default: prompt me
-        -k   optional | RKE cluster only, don't install rancher/server
-        -o   optional | terraform only
-        -s   optional | rancher server only
-        -t   optional | rancher/server tag, eg: v2.3.0 (default: stable)
-        -l   optional | don't create a load balancer
+        -z   optional | instance type                                       default: t3a.medium
+        -k   optional | RKE cluster only, don't install rancher/server      default: run everything
+        -o   optional | terraform only                                      default: run everything
+        -s   optional | rancher server only                                 default: run everything
+        -t   optional | rancher/server tag, eg: v2.3.0                      default: stable
+        -l   optional | don't create a load balancer                        default: create an NLB
         
     example:
       
@@ -124,6 +125,7 @@ cat <<- EOF > .${_region}.${_name}.ha.terraform.tfvars
     load-balancer = ${_nlb}
     vpc = "${_vpc}"
     public-subnet = ${_publicsubnet}
+    instance-type = "${_instancetype}"
 EOF
     fi
 }
@@ -170,7 +172,7 @@ buildclusteryml () {
             do
               pub_ip=`awk '{ if (NR=='$_num') print $1 }' ${_configdir}/.tmp.nodes.txt`
               priv_ip=`awk '{ if (NR=='$_num') print $2 }' ${_configdir}/.tmp.nodes.txt`
-              sed -i '' "s|n${_num}_public_ip|$pub_ip|; s|n${_num}_private_ip|$priv_ip|" ${_clusteryaml} 
+              sed -i '' "s|n${_num}_public_ip|${pub_ip}|; s|n${_num}_private_ip|${priv_ip}|" ${_clusteryaml} 
             done
           sed -i '' "s|^cluster_name.*|cluster_name: ${_name}|" ${_clusteryaml}  
         else
@@ -228,6 +230,7 @@ installcertmanager () {
       --namespace cert-manager \
       --version v0.9.1 \
       jetstack/cert-manager
+    sleep 5 # let the certmanager controller setup first before moving on to installrancher  
     kubectl get pods --namespace cert-manager
     kubectl -n cert-manager rollout status deploy/cert-manager
 }
@@ -308,7 +311,7 @@ case "$1" in
       ;;
 esac
 
-while getopts "khlsahot:n:i:r:p:d:c:e:" opt
+while getopts "khlsahot:n:i:r:p:d:c:e:z:" opt
   do
     case ${opt} in
       a)
@@ -347,8 +350,11 @@ while getopts "khlsahot:n:i:r:p:d:c:e:" opt
       e)
           _opt_email=${OPTARG}
           ;;
+      z)
+          _opt_instancetype=${OPTARG}
+          ;;
       l)
-          _nlb=0
+          _opt_nlb=0
           ;;
       h)
           usage
@@ -370,6 +376,7 @@ _provider=${_opt_provider:-aws}
 _nodes=${_opt_nodes:-3}
 _ranchertag=${_opt_ranchertag:-stable}
 _email=${_opt_email:-postmaster@$_serverdomain}
+_instancetype=${_opt_instancetype:-t3a.medium}
 _configdir=config
 _scope=HA
 
@@ -387,9 +394,9 @@ if [ -n "${_create}" ]
     fi
     if [ -n "${_rancheronly}" ]
       then
+        checknodes
         installtiller
         installcertmanager
-        sleep 5 # let the certmanager controller setup first
         installrancher
         exit 0
     fi

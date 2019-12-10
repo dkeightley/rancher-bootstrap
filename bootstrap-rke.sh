@@ -3,14 +3,14 @@
 usage () {
     echo "bootstrap-rke.sh [create | delete] <args>
     args:
-        -n   name to use for all resources and cluster                      default: rancher-lab
-        -p   provider (aws only so far)                                     default: aws
-        -r   region to run the resources                                    default: us-east-1
-        -i   pathname to your public SSH key                                default: ~/.ssh/id_rsa.pub
-        -c   number of nodes to launch                                      default: 3
-        -t   instance type                                                  default: t3a.medium
-        -a   i'm feeling lucky (yes to everything)                          default: prompt me
-        -o   run terraform only
+        -n   name to use for all resources and cluster            default: rancher-lab
+        -i   pathname to your public SSH key                      default: ~/.ssh/id_rsa.pub
+        -p   optional | provider (aws only so far)                default: aws
+        -r   optional | region to run the resources               default: us-east-1
+        -c   optional | number of nodes to launch                 default: 3
+        -z   optional | instance type                             default: t3a.medium
+        -a   optional | i'm feeling lucky (yes to everything)     default: prompt me
+        -o   optional | run terraform only                        default: run everything
         
     example:
 
@@ -267,7 +267,7 @@ case "$1" in
       ;;
 esac
 
-while getopts "hoan:i:r:p:c:t:" opt
+while getopts "hoan:i:r:p:c:z:" opt
   do
     case ${opt} in
       a)
@@ -288,7 +288,7 @@ while getopts "hoan:i:r:p:c:t:" opt
       c)
           _opt_nodes=${OPTARG}
           ;;
-      t)
+      z)
           _opt_instancetype=${OPTARG}
           ;;
       o)
