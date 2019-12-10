@@ -1,4 +1,4 @@
-## rancher-bootstrap
+# rancher-bootstrap
 
 An automated approach to launching the resources for Rancher servers and RKE clusters in HA or single node configurations. 
 
@@ -19,7 +19,9 @@ Uses Terraform and bash to automate the creation of:
  - jq
  - ssh-agent running, with your SSH key added
 
-## Example
+# Examples
+
+## Create a VPC
 
 - Create a VPC for use with the Rancher server and/or downstream clusters, this VPC will automatically be used for further resources.
 
@@ -27,25 +29,35 @@ Uses Terraform and bash to automate the creation of:
 ./bootstrap-vpc.sh create -a -n test-vpc
 ```
 
-- Create a 3 node cluster and run an **HA** Rancher server.
+*Note: override the default region with `-r <region>`*
+
+  - This VPC will now be used for any further resources in that region.
+
+## Create a 3 node cluster and run an HA Rancher server
 
 ```bash
-./bootstrap-ha.sh create -a -n ha-rancher -d <domain name for SSL certificate>
+./bootstrap-ha.sh create -a -n ha-rancher -d <domain name> -e <email for letsencrypt>
 ```
-*Note: provide an SSH key in a custom location with `-i </path/to/key.pub>`*
+  *Note: provide an SSH key in a custom location with `-i </path/to/key.pub>`, provide a specific Rancher version with `-t <v2.3.0>`, override the region with `-r <region>`*
 
   - Add a CNAME or alias for your domain name to the NLB that is created.
   - Access the Rancher server via the NLB.
 
-**Optional** 
-
-- Create a **single** instance to run a single node Rancher server.
+## Create a single node cluster and run Rancher server via Helm (testing environment)
 
 ```bash
-./bootstrap-ha.sh create -a -n single-rancher -o -c 1
+./bootstrap-ha.sh create -a -n test-rancher -d <domain name> -e <email for letsencrypt> -c 1 -l
 ```
 
-  - Login and run the Rancher container:
+  - Add an A record for your domain name to the IP Address of the node (needed for SSL).
+
+## Create a single node cluster and run Rancher as a container (testing environment)
+
+```bash
+./bootstrap-rke.sh create -a -n single-rancher -o -c 1
+```
+
+- Login and run the Rancher container (example):
 
 ```bash
 docker run -d --restart=unless-stopped \
@@ -54,7 +66,7 @@ docker run -d --restart=unless-stopped \
   rancher/rancher:latest
 ```
 
-  - Access the Rancher server via the Public IP of the node.
+  - Access the Rancher server via the Public IP of the node or add an A record to your domain.
 
 ---
 
