@@ -3,7 +3,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
   }
 
   filter {
@@ -22,6 +22,12 @@ resource "aws_launch_configuration" "launchconfig" {
   name_prefix     = "${var.name}-"
   security_groups = ["${var.cluster-sg}","${var.admin-sg}"]
   user_data       = "${var.userdata}"
+
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
 
   lifecycle {
     create_before_destroy = true

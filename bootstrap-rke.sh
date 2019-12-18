@@ -83,7 +83,7 @@ importkey () {
     fi
     case ${_provider} in
     aws)
-        aws ec2 describe-key-pairs --key-name ${_name} --region ${_region} > /dev/null 2>&1
+        aws ec2 describe-key-pairs --key-name ${_name}-keypair --region ${_region} > /dev/null 2>&1
         if [ $? -ne 0 ]
           then 
             aws ec2 import-key-pair --region ${_region} --key-name ${_name}-keypair --public-key-material file://${_pubsshkey}

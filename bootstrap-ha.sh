@@ -89,8 +89,8 @@ importkey () {
         fi
     fi
     case ${_provider} in
-    aws)
-        aws ec2 describe-key-pairs --key-name ${_name} --region ${_region} > /dev/null 2>&1
+      aws)
+        aws ec2 describe-key-pairs --key-name ${_name}-keypair --region ${_region} > /dev/null 2>&1
         if [ $? -ne 0 ]
           then 
             aws ec2 import-key-pair --region ${_region} --key-name ${_name}-keypair --public-key-material file://${_pubsshkey}
@@ -98,7 +98,7 @@ importkey () {
             echo "[Info] $_scope | Skipping key pair, it already exists"
         fi
         ;;
-    *)
+      *)
         echo "Sorry, on the to do list"
         exit 1
         ;;
@@ -230,7 +230,7 @@ installcertmanager () {
       --namespace cert-manager \
       --version v0.9.1 \
       jetstack/cert-manager
-    sleep 5 # let the certmanager controller setup first before moving on to installrancher  
+    sleep 10 # let the certmanager controller setup first before moving on to installrancher  
     kubectl get pods --namespace cert-manager
     kubectl -n cert-manager rollout status deploy/cert-manager
 }
