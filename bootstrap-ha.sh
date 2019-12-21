@@ -221,6 +221,7 @@ installtiller () {
 }
 
 installcertmanager () {
+    echo "[Info] $_scope | Starting cert-manager install"
     kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.9/deploy/manifests/00-crds.yaml
     kubectl apply -f kubernetes/cert-manager
     helm repo add jetstack https://charts.jetstack.io
@@ -230,12 +231,13 @@ installcertmanager () {
       --namespace cert-manager \
       --version v0.9.1 \
       jetstack/cert-manager
-    sleep 10 # let the certmanager controller setup first before moving on to installrancher  
-    kubectl get pods --namespace cert-manager
-    kubectl -n cert-manager rollout status deploy/cert-manager
+    # wait for the webhook to be ready
+    kubectl wait -n cert-manager pod --selector app=webhook --for condition=ready --timeout=60s
+    sleep 5
 }
 
 installrancher () {
+    echo "[Info] $_scope | Starting Rancher Server install"
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
     helm repo update
     helm install rancher-stable/rancher \
@@ -245,7 +247,7 @@ installrancher () {
       --set ingress.tls.source=letsEncrypt \
       --set letsEncrypt.email=${_email} \
       --set rancherImageTag=${_ranchertag}
-    kubectl -n cattle-system rollout status deploy/rancher
+    kubectl -n cattle-system rollout status deploy/rancher -w
     helm ls
 }
 

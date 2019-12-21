@@ -17,7 +17,6 @@ data "aws_ami" "ubuntu" {
 resource "aws_launch_configuration" "launchconfig" {
   image_id        = "${data.aws_ami.ubuntu.id}"
   instance_type   = "${var.instance-type}"
-  spot_price      = "1.0"
   key_name        = "${var.key-name}"
   name_prefix     = "${var.name}-"
   security_groups = ["${var.cluster-sg}","${var.admin-sg}"]
