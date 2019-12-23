@@ -29,9 +29,9 @@ testcredentials () {
               _iam=`aws sts get-caller-identity | jq -r '.Arn'`
               if [ $? -eq 0 ]
                 then
-                  echo "[Info] $_scope | Using the following IAM entity: ${_iam}"
+                  echo "[Info] ${_scope} | Using the following IAM entity: ${_iam}"
                 else
-                  echo "[Error] $_scope | We'll need the AWS CLI configured with credentials, please configure and run me again"
+                  echo "[Error] ${_scope} | We'll need the AWS CLI configured with credentials, please configure and run me again"
                   exit 1
               fi
         fi
@@ -48,7 +48,7 @@ testprereqs () {
       do
         if ! ${_command} --version > /dev/null 2>&1
           then
-            echo "[Error] $_scope | Can't find the ${_command}, please check or install it"
+            echo "[Error] ${_scope} | Can't find the ${_command}, please check or install it"
             exit 1
         fi
     done
@@ -68,7 +68,7 @@ adminip () {
 importkey () {
     if [ ! -f ${_pubsshkey} ]
       then
-        echo "[Info] $_scope | Ooops, it looks like that public SSH key doesn't exist"
+        echo "[Info] ${_scope} | Ooops, it looks like that public SSH key doesn't exist"
         echo "Shall I create a key for you?"
         echo -n "     y/n: "
         read _reply
@@ -88,7 +88,7 @@ importkey () {
           then 
             aws ec2 import-key-pair --region ${_region} --key-name ${_name}-keypair --public-key-material file://${_pubsshkey}
           else
-            echo "[Info] $_scope | Skipping key pair, it already exists"
+            echo "[Info] ${_scope} | Skipping key pair, it already exists"
         fi
         ;;
     *)
@@ -98,7 +98,7 @@ importkey () {
     esac
     if ! ps -a | grep ssh-agent > /dev/null 2>&1
       then
-          echo "[Error] $_scope | Looks like the ssh-agent isn't running, please make sure it's running and ssh-add your private SSH key"
+          echo "[Error] ${_scope} | Looks like the ssh-agent isn't running, please make sure it's running and ssh-add your private SSH key"
           exit 1
     fi
 }
@@ -127,14 +127,14 @@ terraformapply () {
       then
         if ! terraform init terraform/${_provider}/rancher-rke > /dev/null 2>&1
           then
-            echo "[Error] $_scope | Something went wrong with initialising terraform"
+            echo "[Error] ${_scope} | Something went wrong with initialising terraform"
             exit 1
         fi
     fi
     terraform apply -var-file=./.${_region}.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
-        echo "[Error] $_scope | Something went wrong with applying terraform"
+        echo "[Error] ${_scope} | Something went wrong with applying terraform"
         exit 1
     fi
 }
@@ -143,7 +143,7 @@ buildclusteryml () {
     _configdir=config
     if [ ! -f ${_configdir}/.example.cluster.yml ]
       then
-        echo "[Error] $_scope | Appears my .example.rancher-cluster.yml file is missing, i'll need that, a little help please..."
+        echo "[Error] ${_scope} | Appears my .example.rancher-cluster.yml file is missing, i'll need that, a little help please..."
         exit 1
     fi
     _clusteryaml="${_configdir}/${_name}-rke.cluster.yml"
@@ -151,7 +151,7 @@ buildclusteryml () {
       then
         cp ${_configdir}/.example.cluster.yml ${_clusteryaml}
       else
-        echo "[Info] $_scope | Looks like a cluster.yml exists, taking a backup"
+        echo "[Info] ${_scope} | Looks like a cluster.yml exists, taking a backup"
         mv ${_clusteryaml} ${_configdir}/.bkp.${_name}.`date "+%F-%T"`
         cp ${_configdir}/.example.cluster.yml ${_clusteryaml}
     fi
@@ -169,7 +169,7 @@ buildclusteryml () {
             done
           sed -i '' "s|^cluster_name.*|cluster_name: ${_name}|" ${_clusteryaml}  
         else
-            echo "[Error] $_scope | Number of nodes is not what we expected, ${_running} when we should have ${_nodes}"
+            echo "[Error] ${_scope} | Number of nodes is not what we expected, ${_running} when we should have ${_nodes}"
             exit 1
         fi
         rm ${_configdir}/.tmp.nodes.txt
@@ -191,11 +191,11 @@ waitfornodes () {
 }
 
 rkeup () {
-    echo "[Info] $_scope | Running RKE to build the rancher server cluster"
+    echo "[Info] ${_scope} | Running RKE to build the rancher server cluster"
     rke up --ssh-agent-auth --config ./${_clusteryaml}
     if [ $? -ne 0 ]
       then
-        echo "[Error] $_scope | Something went wrong with 'rke up'"
+        echo "[Error] ${_scope} | Something went wrong with 'rke up'"
         exit 1
     fi
 }
@@ -206,7 +206,7 @@ checknodes () {
 }
 
 rkeremove () {
-    echo "[Info] $_scope | Running RKE to remove the rancher server cluster"
+    echo "[Info] ${_scope} | Running RKE to remove the rancher server cluster"
     _clusteryaml="${_configdir}/${_name}-rke.cluster.yml"
     _rkestate="${_configdir}/${_name}-rke.cluster.rkestate"
     _kubeconfig="${_configdir}/kube_config_${_name}-rke.cluster.yml"
@@ -216,7 +216,7 @@ rkeremove () {
     rke remove --ssh-agent-auth --config ${_clusteryaml} 
     if [ $? -ne 0 ]
       then
-        echo "[Error] $_scope | Something went wrong with 'rke remove'"
+        echo "[Error] ${_scope} | Something went wrong with 'rke remove'"
         exit 1
     fi
     rm ${_clusteryaml}
@@ -237,7 +237,7 @@ terraformdestroy () {
     terraform destroy -var-file=./.${_region}.${_name}.rke.terraform.tfvars -state=./terraform.rke.${_region}.${_name}.tfstate ${_imfeelinglucky} terraform/${_provider}/rancher-rke
     if [ $? -ne 0 ]
       then
-        echo "[Error] $_scope | Something went wrong with terraform"
+        echo "[Error] ${_scope} | Something went wrong with terraform"
         exit 1
     fi
     rm .${_region}.${_name}.rke.terraform.tfvars
@@ -317,7 +317,7 @@ _scope=RKE
 
 if ! [[ -n "${_create}" || -n "${_delete}" ]]
   then
-    echo "[Error] $_scope | Sorry, I need a create or delete operation, check out the -h usage."
+    echo "[Error] ${_scope} | Sorry, I need a create or delete operation, check out the -h usage."
     exit 1
 fi
 if [ -n "${_create}" ]
@@ -340,14 +340,14 @@ if [ -n "${_create}" ]
       then
         for _function in terraformapply buildclusteryml rkeup checknodes
           do
-            echo "[Info] $_scope | We're ready to start the ${_function} function, are we good to go?"
+            echo "[Info] ${_scope} | We're ready to start the ${_function} function, are we good to go?"
             read _reply
             if [[ ! ${_reply} =~ ^[Yy]$ ]]
               then
                 echo -e "\nOk, lets revist this later..."
                 exit 1
               else
-                echo -e "\n[Info] $_scope | Starting ${_function} now"
+                echo -e "\n[Info] ${_scope} | Starting ${_function} now"
                 ${_function}
                 if [ ${_function} = "buildclusteryml" ]
                   then
@@ -376,7 +376,7 @@ if [ -n "${_delete}" ]
       then
         for _function in rkeremove terraformdestroy deletekey
           do
-            echo "[Info] $_scope | We're ready to start the ${_function} function, are we good to go?"
+            echo "[Info] ${_scope} | We're ready to start the ${_function} function, are we good to go?"
             echo -n "    y/n: "
             read _reply
             if [[ ! ${_reply} =~ ^[Yy]$ ]]
@@ -384,7 +384,7 @@ if [ -n "${_delete}" ]
                 echo -e "\nOk, lets revist this later..."
                 exit 1
               else
-                echo -e "\n[Info] $_scope | Starting ${_function} now"
+                echo -e "\n[Info] ${_scope} | Starting ${_function} now"
                 ${_function}
             fi
           done
