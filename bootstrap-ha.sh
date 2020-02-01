@@ -185,17 +185,22 @@ buildclusteryml () {
 
 waitfornodes () {
     _node_ips=`grep ' address:' ${_clusteryaml} | awk '{print $3}'`
+    echo "Checking nodes are online (.) and Docker is started (_)"
     for _ip in ${_node_ips}
       do 
-        echo -n "Waiting on $_ip: "
+        echo -n "$_ip: "
         while ! ping -c1 $_ip >/dev/null 2>&1
           do
             sleep 2
             echo -n "."
           done
+        while ! ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $_ip "docker info > /dev/null 2>&1 | echo $?" >/dev/null 2>&1
+          do
+            sleep 2
+            echo -n "_"
+          done
         echo
       done
-    sleep 2 # docker is being installed on bootstrap
 }
 
 rkeup () {
@@ -213,36 +218,25 @@ checknodes () {
     kubectl get nodes -o wide
 }
 
-installtiller () {
-    kubectl apply -f kubernetes/tiller
-    helm init --service-account tiller
-    echo "[Info] ${_scope} | Testing tiller install"
-    kubectl -n kube-system rollout status deploy/tiller-deploy
-    helm version
-}
-
 installcertmanager () {
     echo "[Info] ${_scope} | Starting cert-manager install"
-    kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.9/deploy/manifests/00-crds.yaml
-    kubectl apply -f kubernetes/cert-manager
+    kubectl create namespace cert-manager
     helm repo add jetstack https://charts.jetstack.io
     helm repo update
-    helm install \
-      --name cert-manager \
+    helm install cert-manager jetstack/cert-manager \
       --namespace cert-manager \
-      --version v0.9.1 \
-      jetstack/cert-manager
+      --version v0.12.0
     # wait for the webhook to be ready
     kubectl wait -n cert-manager pod --selector app=webhook --for condition=ready --timeout=60s
-    sleep 5
+    sleep 2
 }
 
 installrancher () {
     echo "[Info] ${_scope} | Starting Rancher Server install"
-    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+    helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
     helm repo update
-    helm install rancher-stable/rancher \
-      --name rancher \
+    kubectl create namespace cattle-system
+    helm install rancher rancher-latest/rancher \
       --namespace cattle-system \
       --set hostname=${_serverdomain} \
       --set ingress.tls.source=letsEncrypt \
@@ -398,7 +392,6 @@ if [ -n "${_create}" ]
     if [ -n "${_rancheronly}" ]
       then
         checknodes
-        installtiller
         installcertmanager
         installrancher
         exit 0
@@ -445,7 +438,6 @@ if [ -n "${_create}" ]
         checknodes
         if [ -z "${_dontinstallrancher}" ]
           then
-            installtiller
             installcertmanager
             installrancher
         fi
@@ -465,7 +457,7 @@ if [ -n "${_delete}" ]
       then
         for _function in rkeremove terraformdestroy deletekey
           do
-            echo "[Info] ${_scope} | We're ready to start the ${_function} function, are we good to go?"
+            echo "[Info] ${_scope} | We\'re ready to start the ${_function} function, are we good to go?"
             echo -n "    y/n: "
             read _reply
             if [[ ! ${_reply} =~ ^[Yy]$ ]]
