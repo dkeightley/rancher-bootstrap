@@ -15,6 +15,7 @@ Uses Terraform and bash to automate the creation of:
  - AWS CLI and credentials
  - terraform
  - rke
+ - helm v3
  - curl
  - jq
  - ssh-agent running, with your SSH key added
@@ -39,7 +40,7 @@ Uses Terraform and bash to automate the creation of:
 ```bash
 ./bootstrap-ha.sh create -a -n ha-rancher -d <domain name> -e <email for letsencrypt>
 ```
-  *Note: provide an SSH key in a custom location with `-i </path/to/key.pub>`, provide a specific Rancher version with `-t <v2.3.0>`, override the region with `-r <region>`*
+  *Note: provide an SSH key in a custom location with `-i </path/to/key.pub>`, provide a specific Rancher version with `-t <v2.3.4>`, override the region with `-r <region>`*
 
   - Add a CNAME or alias for your domain name to the NLB that is created.
   - Access the Rancher server via the NLB.
@@ -50,7 +51,7 @@ Uses Terraform and bash to automate the creation of:
 ./bootstrap-ha.sh create -a -n test-rancher -d <domain name> -e <email for letsencrypt> -c 1 -l
 ```
 
-  - No NLB is created (`-l`)
+  - No NLB is created (`-l`).
   - Add an A record for your domain name to the IP Address of the node (needed for SSL).
 
 ## Create a 3 node RKE cluster only
@@ -74,7 +75,7 @@ docker run -d --restart=unless-stopped \
   rancher/rancher:latest
 ```
 
-  - Access the Rancher server via the Public IP of the node or add an A record to your domain.
+- Access the Rancher server via the Public IP of the node or add an A record to your domain.
 
 ---
 
